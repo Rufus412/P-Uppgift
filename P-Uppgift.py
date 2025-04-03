@@ -1,18 +1,53 @@
 import tkinter as tk
 import json
+import urllib.request
 
-
-class Display():
-    def __init__(self, root):
+class AddButton(): 
+    def __init__(self, root, text, clicked):
         self.root = root
+        self.button = tk.Button(self.root, text=text, command=clicked)
+
+class Display(AddButton):
+    def __init__(self, root, window, item):
+        AddButton.__init__(self, root, None, None)
         self.photo = tk.PhotoImage(file=r'./mona-lisa.png')
         self.photoimage = self.photo.subsample(5, 5) 
-        self.button = tk.Button(self.root, text = 'Click Me !', image = self.photoimage, compound = tk.LEFT)
+        self.button = tk.Button(self.root, text = item.name, image = self.photoimage, compound = tk.LEFT, command=lambda: window.editMode(item))
+        self.item = item
+        
+        #window.test()
 
-class Button():
-    def __init__(self, root, text):
-        self.root = root
-        self.button = tk.Button(self.root, text = 'Click Me !', image = self.photoimage, compound = tk.LEFT)
+
+class MuseumItem():
+    def __init__(self, name, description, context, id, image, borrowed, times_searched):
+        self.name = name
+        self.description = description
+        self.context = context
+        self.id = id
+        self.borrowed = borrowed
+        self.times_searched = times_searched
+        self.image = image
+
+    def getAsDict(self):
+        return {
+            'name': self.name,
+            'description': self.description,
+            'context': self.context,
+            'id': self.id,
+            'image': self.image,
+            'borrowed': self.borrowed,
+            'times_searched': self.times_searched
+        }
+
+    def __str__(self):
+        return f"name: {self.name}, description: {self.description}, context: {self.context}, id: {self.id}, image: {self.image}, borrowed: {self.borrowed}, times_searched: {self.times_searched}"    
+
+
+class RemoveButton(AddButton):
+    def __init__(self, root, text, clicked):
+        AddButton.__init__(self, root, text, clicked)
+        self.button = tk.Button(self.root, text='Remove', command=clicked)
+
 
 class Window():
     def __init__(self, json_data):
@@ -23,6 +58,18 @@ class Window():
         self.description_var = tk.StringVar()
         self.context_var = tk.StringVar()
         self.json_data = json_data
+        self.item_list = [MuseumItem(
+            item['name'],
+            item['description'],
+            item['context'],
+            item['id'],
+            item['image'],
+            item['borrowed'],
+            item['times_searched']
+        ) for item in json_data]
+        self.item_being_edited = None
+        self.modeText = tk.StringVar()
+        self.showBorrowed = False
 
 
         
@@ -40,28 +87,10 @@ class Window():
         create_label.grid(row=1, column=0)
         create_button = tk.Button(self.root, text='Create', command=self.createMode, bg='brown', fg='white')
         create_button.grid(row=1, column=1)
-
-        add_label = tk.Label(self.root, text="Add item to inventory", font=('calibre', 10, 'bold'), bg='white', fg='black')
-        add_label.grid(row=2, column=0)
-        add_button = tk.Button(self.root, text='Add', command=self.addMode, bg='brown', fg='white')
-        add_button.grid(row=2, column=1)
-
-        edit_label = tk.Label(self.root, text="Edit item", font=('calibre', 10, 'bold'), bg='white', fg='black')
-        edit_label.grid(row=3, column=0)
-        edit_button = tk.Button(self.root, text='Edit', command=self.editMode, bg='brown', fg='white')
-        edit_button.grid(row=3, column=1)
-
-        remove_label = tk.Label(self.root, text="Remove item", font=('calibre', 10, 'bold'), bg='white', fg='black')
-        remove_label.grid(row=4, column=0)
-        remove_button = tk.Button(self.root, text='Remove', command=self.removeMode, bg='brown', fg='white')
-        remove_button.grid(row=4, column=1)
-
+        finnish_button = tk.Button(self.root, text='Finnish', command=self.finnish, bg='brown', fg='white')
+        finnish_button.grid(row=2, column=1)
         self.mainMenu = [
-            search_label, search_button,
-            create_label, create_button,
-            add_label, add_button,
-            edit_label, edit_button,
-            remove_label, remove_button
+            search_label, search_button, create_label, create_button, finnish_button
         ]
         self.currentMode = self.mainMenu
 
@@ -71,9 +100,12 @@ class Window():
         entry = tk.Entry(self.root, textvariable = self.name_var ,font = ('calibre',10,'bold'), bg = 'white', fg = 'black')      
         entry_label.grid(row=3, column=0)
         entry.grid(row=3, column=1)
+        self.show_borrowed_btn = tk.Button(self.root, text='Show borrowed', command=lambda:self.toggleShowBorrowed(), bg='brown', fg='white')
+        self.show_borrowed_btn.grid(row=3, column=2)
         sub_btn=tk.Button(self.root,text = 'Search', command = self.search, bg='brown', fg='white')
         back_btn=tk.Button(self.root,text = 'Back', command = self.mainMenuMode, bg='brown', fg='white')
-        self.search_buttons = [entry_label, entry, sub_btn, back_btn]
+        self.search_buttons = self.displayed = [entry_label, entry, sub_btn, back_btn, self.show_borrowed_btn]
+        #self.searched_buttons = [entry_label, entry, sub_btn, back_btn, self.show_borrowed_btn]
         self.hide(self.search_buttons)
 
 
@@ -96,19 +128,22 @@ class Window():
         create_context_entry = tk.Entry(self.root, textvariable=self.context_var, font=('calibre', 10, 'bold'), bg='white', fg='black')
         create_context_entry.grid(row=6, column=1)
 
-        create_sub_btn = tk.Button(self.root, text='Create', command=self.create, bg='brown', fg='white')
+        create_sub_btn = tk.Button(self.root, textvariable=self.modeText, command=self.create, bg='brown', fg='white')
         create_sub_btn.grid(row=7, column=1)
-        self.create_mode = [create_label, name_label, create_name_entry, description_label, create_description_entry, context_label, create_context_entry, create_sub_btn]
+        remove_button = tk.Button(self.root, text='Remove', command=self.remove, bg='brown', fg='white')
+        remove_button.grid(row=7, column=0)
+        self.create_mode = [create_label, name_label, create_name_entry, description_label, create_description_entry, context_label, create_context_entry, create_sub_btn, remove_button]
         self.hide(self.create_mode)
         self.root.mainloop()
-
-
-        #edit Mode
-
-        
-        #sub_btn.grid(row=4, column=1)
-        #self.root.mainloop()
     
+    def toggleShowBorrowed(self):
+        print("toggle")
+        if self.showBorrowed:
+            self.show_borrowed_btn.config(text='Show borrowed')
+        else:
+            self.show_borrowed_btn.config(text='Hide borrowed')
+        self.showBorrowed = not self.showBorrowed
+        print(self.showBorrowed)
     def hide(self, widgets):
         for widget in widgets:
             widget.grid_remove()
@@ -124,46 +159,79 @@ class Window():
         
 
     def searchMode(self):
-        self.hide(self.mainMenu)
-        self.show(self.search_buttons)
+        self.hide(self.currentMode)
         self.currentMode = self.search_buttons
+        self.show(self.search_buttons)
         pass
 
     def createMode(self):
-        self.hide(self.mainMenu)
+        self.modeText.set(
+            "Edit" if self.item_being_edited else "Create"
+        )
+        self.hide(self.currentMode)
         self.show(self.create_mode)
         self.currentMode = self.create_mode
         print (self.json_data)
         pass
+    
 
     def create(self):
 
-        new_item = {
-            "name": self.name_var.get(),
-            "description": self.description_var.get().split(","),
-            "context": self.context_var.get(),
-            "id": len(self.json_data['items']) + 1
-        }
+        if self.item_being_edited:
+            self.item_being_edited.name = self.name_var.get()
+            self.item_being_edited.description = self.description_var.get().split(",")
+            self.item_being_edited.context = self.context_var.get()
+        else:
+            new_item = MuseumItem(
+                self.name_var.get(),
+                self.description_var.get().split(","),
+                self.context_var.get(),
+                len(self.json_data) + 1,
+                None,  # Assuming no image is provided during creation
+                False,
+                0
+            )
+            self.item_list.append(new_item) 
+        self.item_being_edited = None
         self.name_var.set("")
         self.description_var.set("")
         self.context_var.set("")
-        self.json_data['items'].append(new_item)
+        #clicked_item  = [x for x in filter(lambda x: x['id'] == id, self.a)][0]
+        #self.json_data.up
         self.mainMenuMode()
     def addMode(self):
         pass
 
-    def editMode(self):
-        pass
-    def removeMode(self):
-        pass
-
+    def remove(self):
+        if self.item_being_edited:
+            self.item_list.remove(self.item_being_edited)
+            self.item_being_edited = None
+        self.name_var.set("")
+        self.description_var.set("")
+        self.context_var.set("")
+        self.mainMenuMode()
+    def editMode(self, item):
+        self.name_var.set(item.name)
+        self.description_var.set(("".join(x + "," for x in item.description)).strip(","))
+        self.context_var.set(item.context)
+        self.item_being_edited = item
+        self.hide(self.displayed)
+        self.createMode()
 
     def search(self):
+        self.hide(self.currentMode)
+        self.show(self.search_buttons)
+        self.currentMode = self.search_buttons
         searchResults = []
+
         keyWords=self.name_var.get().split(",")
-        print(f"Hi  {keyWords}")
-        for keyWord in keyWords:
-            searchResults.append([x for x in filter(lambda x:keyWord in x['name'] or keyWord in x['description'] or keyWord in x['context'] or x['id'] == keyWord , self.json_data['items'])])
+        if self.showBorrowed:
+            for keyWord in keyWords:
+                searchResults.append([item for item in self.item_list if keyWord in item.name or keyWord in "".join(desc for desc in item.description) or keyWord in item.context or str(item.id) == keyWord])
+        else:
+            for keyWord in keyWords:
+
+                searchResults.append([item for item in self.item_list if (keyWord in item.name or keyWord in "".join(desc for desc in item.description) or keyWord in item.context or str(item.id) == keyWord) and item.borrowed])
         #search for item
         formattedResults = []
         print(searchResults)
@@ -171,16 +239,32 @@ class Window():
             for result in listOfResults:
                 formattedResults.append(result)
         print(formattedResults)
-        a = list({v['id']:v for v in formattedResults}.values())
-        for x in a:
+        self.formated_non_duplicate_results = list({v.id:v for v in formattedResults}.values())
+        for x in self.formated_non_duplicate_results:
+           x.times_searched += 1
            print(x)
-        self.displaySearchResults(a)
+        self.displaySearchResults(self.formated_non_duplicate_results)
 
     def displaySearchResults(self , searchResults):
-        self.displayedResults = [Display(self.root) for x in searchResults]
+        self.displayedResults = [Display(self.root, self, x) for x in searchResults]
+        self.displayed = self.displayed[:5]
+        print(len(self.displayedResults))
+        #self.displayed = []
+        self.photos = []
         for i in range(len(searchResults)):
-            self.displayedResults[i].button.grid(row=i+7, column=0)
-            #self.displayedResults[i].button.bind("<Button-1>", lambda event, result=result: self.displayItem(result))
+            photo = tk.PhotoImage(file=r'./mona-lisa.png')
+            photoimage = photo.subsample(5, 5)
+            self.photos.append(photoimage)
+            self.displayed.append(self.displayedResults[i].button)
+        self.hide(self.currentMode)
+        self.currentMode = self.displayed
+        self.show(self.displayed)
+
+    def finnish(self):
+        self.item_list = [x.getAsDict() for x in self.item_list]
+        with open('data.json', 'w') as json_file:
+            json.dump(self.item_list, json_file)
+        self.root.destroy()
 
 
 if  __name__ == "__main__":
@@ -193,25 +277,23 @@ if  __name__ == "__main__":
             data = json.load(json_file)
             #x = json.loads(data)
             #print(x)
-    
-    #print([x for x in filter(lambda x: x['name'] or x['description'] or x['context'] or x['id'] == keyWord , data['items'])])
+    print('davinci' in ' davinci')
 
-    #filtered_items = [x for x in data['items'] if "j" in x['name';'description']]
-
-    print([x for x in data['items'] if "J" in x[key]] for key in data.keys())
-
-    for x in data['items']:
+    for x in data:
         print(x)
 
-    #test = ["test1", "test2", "test13"]
+    itemsList = []
 
-    #filtered_test = [x for x in test if "1" in x]
-    #print(filtered_test)
-    #print(filter(lambda x: "1" in x, test))
-
-
-
-
+    for x in data:
+        itemsList.append(MuseumItem(
+            x['name'],
+            x['description'],
+            x['context'],
+            x['id'],
+            x['image'],
+            x['borrowed'],
+            x['times_searched']
+        ))
 
     _Win = Window(data)
     _Win.run()
