@@ -1,18 +1,19 @@
 import tkinter as tk
+from tkinter import ttk
 import json
 import urllib.request
 
 class AddButton(): 
     def __init__(self, root, text, clicked):
         self.root = root
-        self.button = tk.Button(self.root, text=text, command=clicked)
+        self.button = ttk.Button(self.root, text=text, command=clicked)
 
 class Display(AddButton):
     def __init__(self, root, window, item):
         AddButton.__init__(self, root, None, None)
         self.photo = tk.PhotoImage(file=r'./mona-lisa.png')
         self.photoimage = self.photo.subsample(5, 5) 
-        self.button = tk.Button(self.root, text = item.name, image = self.photoimage, compound = tk.LEFT, command=lambda: window.editMode(item))
+        self.button = ttk.Button(self.root, text = item.name, image = self.photoimage, compound = tk.LEFT, command=lambda: window.editMode(item))
         self.item = item
         
         #window.test()
@@ -46,7 +47,7 @@ class MuseumItem():
 class RemoveButton(AddButton):
     def __init__(self, root, text, clicked):
         AddButton.__init__(self, root, text, clicked)
-        self.button = tk.Button(self.root, text='Remove', command=clicked)
+        self.button = ttk.Button(self.root, text='Remove', command=clicked)
 
 
 class Window():
@@ -78,16 +79,16 @@ class Window():
         canvas = tk.Canvas(self.root, width=1024, height=1024)
         canvas.place (relx=0, rely=0, anchor=tk.NW)
         
-        search_label = tk.Label(self.root, text="Search for item", font=('calibre', 10, 'bold'), bg='white', fg='black')
+        search_label = ttk.Label(self.root, text="Search for item", font=('calibre', 10, 'bold'))
         search_label.grid(row=0, column=0)
-        search_button = tk.Button(self.root, text='Search', command=self.searchMode, bg='brown', fg='white')
+        search_button = ttk.Button(self.root, text='Search', command=self.searchMode)
         search_button.grid(row=0, column=1)
 
-        create_label = tk.Label(self.root, text="Create new item", font=('calibre', 10, 'bold'), bg='white', fg='black')
+        create_label = ttk.Label(self.root, text="Create new item", font=('calibre', 10, 'bold'))
         create_label.grid(row=1, column=0)
-        create_button = tk.Button(self.root, text='Create', command=self.createMode, bg='brown', fg='white')
+        create_button = ttk.Button(self.root, text='Create', command=self.createMode)
         create_button.grid(row=1, column=1)
-        finnish_button = tk.Button(self.root, text='Finnish', command=self.finnish, bg='brown', fg='white')
+        finnish_button = ttk.Button(self.root, text='Finnish', command=self.finnish)
         finnish_button.grid(row=2, column=1)
         self.mainMenu = [
             search_label, search_button, create_label, create_button, finnish_button
@@ -96,41 +97,41 @@ class Window():
 
 
 
-        entry_label = tk.Label(self.root, text = "Search for item",font = ('calibre',10,'bold'), bg = 'white', fg = 'black')
-        entry = tk.Entry(self.root, textvariable = self.name_var ,font = ('calibre',10,'bold'), bg = 'white', fg = 'black')      
+        entry_label = ttk.Label(self.root, text = "Search for item",font = ('calibre',10,'bold'))
+        entry = ttk.Entry(self.root, textvariable = self.name_var ,font = ('calibre',10,'bold'))      
         entry_label.grid(row=3, column=0)
         entry.grid(row=3, column=1)
-        self.show_borrowed_btn = tk.Button(self.root, text='Show borrowed', command=lambda:self.toggleShowBorrowed(), bg='brown', fg='white')
+        self.show_borrowed_btn = ttk.Button(self.root, text='Show borrowed', command=lambda:self.toggleShowBorrowed())
         self.show_borrowed_btn.grid(row=3, column=2)
-        sub_btn=tk.Button(self.root,text = 'Search', command = self.search, bg='brown', fg='white')
-        back_btn=tk.Button(self.root,text = 'Back', command = self.mainMenuMode, bg='brown', fg='white')
+        sub_btn=ttk.Button(self.root,text = 'Search', command = self.search)
+        back_btn=ttk.Button(self.root,text = 'Back', command = self.mainMenuMode)
         self.search_buttons = self.displayed = [entry_label, entry, sub_btn, back_btn, self.show_borrowed_btn]
         #self.searched_buttons = [entry_label, entry, sub_btn, back_btn, self.show_borrowed_btn]
         self.hide(self.search_buttons)
 
 
         #create Mode
-        create_label = tk.Label(self.root, text="Create new item", font=('calibre', 10, 'bold'), bg='white', fg='black')
+        create_label = ttk.Label(self.root, text="Create new item", font=('calibre', 10, 'bold'))
         create_label.grid(row=3, column=0)
 
-        name_label = tk.Label(self.root, text="Name", font=('calibre', 10, 'bold'), bg='white', fg='black')
+        name_label = ttk.Label(self.root, text="Name", font=('calibre', 10, 'bold'))
         name_label.grid(row=4, column=0)
-        create_name_entry = tk.Entry(self.root, textvariable=self.name_var, font=('calibre', 10, 'bold'), bg='white', fg='black')
+        create_name_entry = ttk.Entry(self.root, textvariable=self.name_var, font=('calibre', 10, 'bold'))
         create_name_entry.grid(row=4, column=1)
 
-        description_label = tk.Label(self.root, text="Description", font=('calibre', 10, 'bold'), bg='white', fg='black')
+        description_label = ttk.Label(self.root, text="Description", font=('calibre', 10, 'bold'))
         description_label.grid(row=5, column=0)
-        create_description_entry = tk.Entry(self.root, textvariable=self.description_var, font=('calibre', 10, 'bold'), bg='white', fg='black')
+        create_description_entry = ttk.Entry(self.root, textvariable=self.description_var, font=('calibre', 10, 'bold'))
         create_description_entry.grid(row=5, column=1)
 
-        context_label = tk.Label(self.root, text="Context", font=('calibre', 10, 'bold'), bg='white', fg='black')
+        context_label = ttk.Label(self.root, text="Context", font=('calibre', 10, 'bold'),)
         context_label.grid(row=6, column=0)
-        create_context_entry = tk.Entry(self.root, textvariable=self.context_var, font=('calibre', 10, 'bold'), bg='white', fg='black')
+        create_context_entry = ttk.Entry(self.root, textvariable=self.context_var, font=('calibre', 10, 'bold'))
         create_context_entry.grid(row=6, column=1)
 
-        create_sub_btn = tk.Button(self.root, textvariable=self.modeText, command=self.create, bg='brown', fg='white')
+        create_sub_btn = ttk.Button(self.root, textvariable=self.modeText, command=self.create)
         create_sub_btn.grid(row=7, column=1)
-        remove_button = tk.Button(self.root, text='Remove', command=self.remove, bg='brown', fg='white')
+        remove_button = ttk.Button(self.root, text='Remove', command=self.remove)
         remove_button.grid(row=7, column=0)
         self.create_mode = [create_label, name_label, create_name_entry, description_label, create_description_entry, context_label, create_context_entry, create_sub_btn, remove_button]
         self.hide(self.create_mode)
@@ -230,7 +231,6 @@ class Window():
                 searchResults.append([item for item in self.item_list if keyWord in item.name or keyWord in "".join(desc for desc in item.description) or keyWord in item.context or str(item.id) == keyWord])
         else:
             for keyWord in keyWords:
-
                 searchResults.append([item for item in self.item_list if (keyWord in item.name or keyWord in "".join(desc for desc in item.description) or keyWord in item.context or str(item.id) == keyWord) and item.borrowed])
         #search for item
         formattedResults = []
@@ -282,10 +282,10 @@ if  __name__ == "__main__":
     for x in data:
         print(x)
 
-    itemsList = []
+    item_list = []
 
     for x in data:
-        itemsList.append(MuseumItem(
+        item_list.append(MuseumItem(
             x['name'],
             x['description'],
             x['context'],
