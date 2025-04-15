@@ -258,7 +258,6 @@ class Window():
     def item_edit_mode(self, item):
         """Sets the edit mode for the item"""
         self.name_var.set(item.name)
-        item.description = str(item.description) #Need to make sure to do this because we try to split it in the create function, if we dont get an array/string this could give an error
         self.description_var.set(("".join(x + "," for x in item.description)).strip(","))
         self.context_var.set(item.context)
         self.item_url.set(item.image)
@@ -368,7 +367,7 @@ class TerminalMuseum:
                     and not item.borrowed
                 ])
         else:
-            for keyword in query:
+            for key_word in query:
                 results.extend([item for item in self.item_list #Just searching through everythingg
                     if key_word in item.name
                     or key_word in "".join(desc for desc in item.description)
@@ -387,20 +386,16 @@ class TerminalMuseum:
 
     def create_item(self):
         """Creates a new item"""
-        name = input("Enter item name: ")
-        description = input("Enter item description (comma-seperated for multiple keywords): ")
-        context = input("Enter item context: ")
-        image = input("Enter item image URL: ")
-        borrowed = input("Is the item borrowed? (yes/no): ").strip().lower() == "yes"
-        new_item = MuseumItem(
-            name,
-            description,
-            context,
-            random.randint(0, 1000000),
-            image,
-            borrowed,
-            0
-        )
+        new_item_dict = {
+            "name" : input("Enter item name: "),
+            "description": input("Enter item description (comma-seperated for multiple keywords): ").split(","),
+            "context": input("Enter item context: "),
+            "image": input("Enter item image URL: "),
+            "borrowed": input("Is the item borrowed? (yes/no): ").strip().lower() == "yes",
+            "id": random.randint(0, 1000000),
+            "times_searched": 0
+        }
+        new_item = MuseumItem(new_item_dict)
         self.item_list.append(new_item)
         print("Item created successfully.")
 
@@ -446,9 +441,7 @@ class TerminalMuseum:
         """Saves the data to a JSON file and exits the program"""
         save_and_exit(self.item_list)
 
-#if __name__ == "__main__":
-  #  app = TerminalApp(i_have_to_have_a_function())
- #   app.main_menu()
+
 
 
 
@@ -471,7 +464,7 @@ def load_data_from_file():
 if  __name__ == "__main__":   
     
     while True:
-        mode = input("1 to run GUI, 2 to run terminal app")
+        mode = input("1 to run GUI, 2 to run terminal app: ")
         if mode == "1":
             _Win = Window(load_data_from_file())
             _Win.run()
